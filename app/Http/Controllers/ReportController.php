@@ -9,14 +9,18 @@ use Illuminate\View\View;
 
 class ReportController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $user = Auth::user();
+        $selectedYear = $request->input('year', Carbon::now()->year);
+        $selectedMonth = $request->input('month', Carbon::now()->month);
+        $date = Carbon::createFromDate($selectedYear, $selectedMonth, 1);
+
         $now = Carbon::now();
         $month = $now->month;
         $year = $now->year;
 
-        $transactions = $user->transactions()->with('category')->whereYear('transaction_date', $year)->whereMonth('transaction_date', $month)->get();
+        $transactions = $user->transactions()->with('category')->whereYear('transaction_date', $selectedYear)->whereMonth('transaction_date', $selectedMonth)->get();
 
         $totalIncome = $transactions->where('category.type', 'income')->sum('amount');
         $totalExpense = $transactions->where('category.type', 'expense')->sum('amount');
@@ -48,7 +52,9 @@ class ReportController extends Controller
             'netProfit'         => $netProfit,
             'expenseChartData'  => $expenseChartData,
             'incomeChartData'   => $incomeChartData,
-            'monthName'         => $now->format('F Y'),
+            'monthName'         => $date->format('F Y'),
+            'selectedYear'      => $selectedYear,
+            'selectedMonth'     => $selectedMonth
         ]);
     }
 }

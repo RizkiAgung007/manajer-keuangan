@@ -8,6 +8,57 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 text-gray-900 dark:text-gray-100">
+                    <form method="GET" action="{{ route('reports.index') }}">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <x-input-label for="year" :value="__('Year')" />
+                                <select name="year" id="year" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-green-500 dark:focus:border-green-600 focus:ring-green-500 dark:focus:ring-green-600 rounded-md shadow-sm">
+                                    @php
+                                        $currentYear = date('Y');
+                                        $statYear = $currentYear - 5;
+                                    @endphp
+
+                                    @for ($year = $currentYear; $year >= $statYear; $year--)
+                                        <option value="{{ $year }}" {{ $selectedYear == $year ? 'selected' : '' }}>
+                                            {{ $year }}
+                                        </option>
+                                    @endfor
+                                </select>
+                            </div>
+
+                            <div>
+                                <x-input-label for="month" :value="__('Month')" />
+                                <select name="month" id="month" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-green-500 dark:focus:border-green-600 focus:ring-green-500 dark:focus:ring-green-600 rounded-md shadow-sm">
+                                    @for ($month = 1; $month <= 12; $month++)
+                                        <option value="{{ $month }}" {{ $selectedMonth == $month ? 'selected' : '' }}>
+                                            {{ \Carbon\Carbon::create()->month($month)->format('F') }}
+                                        </option>
+                                    @endfor
+                                </select>
+                            </div>
+
+                            <div class="flex flex-col items-center gap-4">
+                                <x-primary-button class="w-full justify-center h-10">
+                                    <x-heroicon-o-funnel class="w-4 h-4 me-2" />
+                                    {{ __('Filter') }}
+                                </x-primary-button>
+
+                                <a href="{{ route('reports.index') }}"
+                                    class="inline-flex items-center justify-center w-full h-10 px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-500 active:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
+                                        <x-heroicon-o-arrow-path class="w-4 h-4 me-2" />
+                                        {{ __('Reset') }}
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+
+
+
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
@@ -80,7 +131,7 @@
 
             function renderExpenseChart(chartData, isDarkMode) {
                 const options = {
-                    chart: { type: 'donut', height: 350 },
+                    chart: { type: 'donut', height: 350, background: 'tranparent' },
                     series: chartData.series,
                     labels: chartData.labels,
                     noData: { text: 'No expense data found for this month.' },
@@ -115,7 +166,7 @@
 
             function renderIncomeChart(chartData, isDarkMode) {
                 const options = {
-                    chart: { type: 'donut', height: 350 },
+                    chart: { type: 'donut', height: 350, background: 'tranparent' },
                     series: chartData.series,
                     labels: chartData.labels,
                     noData: { text: 'No income data found for this month.' },

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
@@ -24,6 +25,9 @@ Route::middleware('auth')->group(function () {
 
     // Transaction
     Route::resource('transactions', TransactionController::class);
+
+    // Budeget
+    Route::resource('budgets', BudgetController::class);
 
     // Report
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');

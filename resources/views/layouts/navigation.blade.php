@@ -24,6 +24,10 @@
                         {{ __('Categories') }}
                     </x-nav-link>
 
+                    <x-nav-link :href="route('budgets.index')" :active="request()->routeIs('budgets.index')">
+                        {{ __('Budgets') }}
+                    </x-nav-link>
+
                     <x-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.index')">
                         {{ __('Reports') }}
                     </x-nav-link>
