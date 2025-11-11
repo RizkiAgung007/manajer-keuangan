@@ -1,25 +1,26 @@
-/**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Budget $budget): RedirectResponse
-    {
-        // 1. Otorisasi: Pastikan budget ini milik user
-        if (auth()->id() !== $budget->user_id) {
-            abort(403);
-        }
+<x-app-layout>
+    <x-slot name="header">
+        <div x-data class="flex justify-between items-center">
+            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+                {{ __('Budgets') }}
+            </h2>
 
-        // 2. Hapus budget
-        $budget->delete();
+            <div class="flex space-x-4">
+                <x-secondary-button
+                    x-on:click.prevent="$dispatch('open-modal', 'copy-budget')">
+                    <x-heroicon-o-document-duplicate class="w-4 h-4 me-2"/>
+                    {{ __('Copy Budgets') }}
+                </x-secondary-button>
 
-        // 3. Kembali ke halaman index
-        return redirect(route('budgets.index'));
-    }
+                <a href="{{ route('budgets.create') }}" class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
+                    <x-heroicon-o-plus class="w-4 h-4 me-2"/>
+                    {{ __('Set New Budget') }}
+                </a>
+            </div>
+        </div>
+    </x-slot>
+    ```
 
+Hanya itu yang perlu Anda ubah. **Simpan file `budgets/index.blade.php`** (file *controller* Anda sudah benar) dan *refresh* halaman. Tombol "Copy Budgets" Anda sekarang akan berfungsi dengan sempurna.
 
-    <form method="POST" action="{{ route('budgets.destroy', $budget->id) }}" onsubmit="return confirm('Are you sure you want to delete this budget?');">
-    @csrf
-    @method('DELETE')
-    <button type="submit" class="font-medium text-red-600 dark:text-red-500 hover:underline pt-2">
-        <x-heroicon-o-trash class="w-5 h-5" />
-    </button>
-</form>
+Beri tahu saya jika modalnya sudah muncul!

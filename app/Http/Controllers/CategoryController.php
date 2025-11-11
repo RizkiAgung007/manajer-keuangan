@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,9 +17,27 @@ class CategoryController extends Controller
      */
     public function index(): View
     {
-        $categories = Auth::user()->categories()->latest()->get();
+        $user = Auth::user();
+        $now = Carbon::now();
 
-        return view('categories.index', ['categories' => $categories]);
+        $categories = $user->categories()->withSum([
+                'transactions as spent_this_month' => function ($query) use ($now) {
+                    $query->whereYear('transaction_date', $now->year)
+                          ->whereMonth('transaction_date', $now->month);
+                }
+            ], 'amount')
+            ->withSum([
+                'budgets as budget_this_month' => function ($query) use ($now) {
+                    $query->where('year', $now->year)
+                          ->where('month', $now->month);
+                }
+            ], 'amount')
+            ->orderBy('order_column', 'asc')
+            ->get();
+
+        return view('categories.index', [
+            'categories' => $categories
+        ]);
     }
 
     /**
@@ -38,6 +57,9 @@ class CategoryController extends Controller
             'name'  => 'required|string|max:255',
             'type'  => ['required', Rule::in(['income', 'expense'])],
         ]);
+
+        $maxOrder = $request->user()->categories()->max('order_column');
+        $validated['order_column'] = $maxOrder + 1;
 
         $request->user()->categories()->create($validated);
 
@@ -95,5 +117,24 @@ class CategoryController extends Controller
         $category->delete();
 
         return redirect(route('categories.index'));
+    }
+
+    /**
+     * Update the display order of categories
+     */
+    public function updateOrder(Request $request)
+    {
+        $request->validate([
+            'order'   => 'required|array',
+            'order.*' => 'integer|exists:categories,id'
+        ]);
+
+        $user = $request->user();
+
+        foreach ($request->input('order') as $index => $categoryId) {
+            $user->categories()->where('id', $categoryId)->update(['order_column' => $index + 1]);
+        }
+
+        return response()->json(['status' => 'success']);
     }
 }

@@ -16,7 +16,8 @@ class Category extends Model
      */
     protected $fillable = [
         'name',
-        'type'
+        'type',
+        'order_column'
     ];
 
     /**

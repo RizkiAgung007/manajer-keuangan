@@ -15,11 +15,46 @@ class TransactionController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        $transactions = Auth::user()->transactions()->with('category')->latest('transaction_date')->paginate(10);
+        $user = Auth::user();
 
-        return view('transactions.index', ['transactions' => $transactions]);
+        $filters = [
+            'search'        => $request->input('search'),
+            'type'          => $request->input('type'),
+            'category_id'   => $request->input('category_id'),
+            'date_from'     => $request->input('date_from'),
+            'date_to'       => $request->input('date_to'),
+            'sort'          => $request->input('sort', 'desc'),
+        ];
+
+        $query = $user->transactions()->with('category')
+                    ->when($filters['search'], function ($q, $search) {
+                        return $q->where('description', 'like', "%{$search}%");
+                    })
+                    ->when($filters['type'], function ($q, $type) {
+                        return $q->whereRelation('category', 'type', $type);
+                    })
+                    ->when($filters['category_id'], function ($q, $category_id) {
+                        return $q->where('category_id', $category_id);
+                    })
+                    ->when($filters['date_from'], function ($q, $date_from) {
+                        return $q->where('transaction_date', '>=', $date_from);
+                    })
+                    ->when($filters['date_to'], function ($q, $date_to) {
+                        return $q->where('transaction_date', '<=', $date_to);
+                    });
+
+        $query->orderBy('transaction_date', $filters['sort']);
+
+        $transactions = $query->paginate(10)->withQueryString();
+        $categories = $user->categories()->get();
+
+        return view('transactions.index', [
+            'transactions'  => $transactions,
+            'categories'    => $categories,
+            'filters'       => $filters
+        ]);
     }
 
     /**
@@ -61,7 +96,7 @@ class TransactionController extends Controller
 
         $request->user()->transactions()->create($validated);
 
-        return redirect(route('transactions.index'));
+        return redirect()->back();
     }
 
     /**

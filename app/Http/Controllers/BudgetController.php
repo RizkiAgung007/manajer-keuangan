@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use App\Models\Category;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\Rule;
 
@@ -17,9 +18,16 @@ class BudgetController extends Controller
      */
     public function index(): View
     {
-        $budgets = Auth()->user()->budgets()->with('category')->orderBy('year', 'desc')->orderBy('month', 'desc')->get();
+        $user = Auth::user();
 
-        return view('budgets.index', ['budgets' => $budgets]);
+        $budgets = $user->budgets()->with('category')->orderBy('year', 'desc')->orderBy('month', 'desc')->get();
+
+        $existingPeriods = $user->budgets()->select('year', 'month')->distinct()->orderBy('year', 'desc')->orderBy('month', 'desc')->get();
+
+        return view('budgets.index', [
+            'budgets'         => $budgets,
+            'existingPeriods' => $existingPeriods
+        ]);
     }
 
     /**
@@ -123,6 +131,65 @@ class BudgetController extends Controller
         }
 
         $budget->delete();
+
+        return redirect(route('budgets.index'));
+    }
+
+    /**
+     * Copy budgets from one period to another.
+     */
+    public function copyStore(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'from_period' => 'required|string',
+            'to_month'    => 'required|integer|min:1|max:12',
+            'to_year'     => 'required|integer|min:' . date('Y'),
+        ]);
+
+        try {
+            [$fromYear, $fromMonth] = explode('-', $validated['from_period']);
+        } catch (\Exception $e) {
+            return back()->withErrors(['from_period' => 'Invalid "from" period format.']);
+        }
+
+        $user = $request->user();
+
+        $budgetsToCopy = $user->budgets()
+                              ->where('year', $fromYear)
+                              ->where('month', $fromMonth)
+                              ->get();
+
+        if ($budgetsToCopy->isEmpty()) {
+            return back()->withErrors(['from_period' => 'No budgets found for the selected period.']);
+        }
+
+        $existingBudgets = $user->budgets()
+                                 ->where('year', $validated['to_year'])
+                                 ->where('month', $validated['to_month'])
+                                 ->pluck('category_id');
+
+        $newBudgetsData = [];
+        $now = Carbon::now();
+
+        foreach ($budgetsToCopy as $budget) {
+            if ( $existingBudgets->contains($budget->category_id) ) {
+                continue;
+            }
+
+            $newBudgetsData[] = [
+                'user_id'     => $user->id,
+                'category_id' => $budget->category_id,
+                'amount'      => $budget->amount,
+                'month'       => $validated['to_month'],
+                'year'        => $validated['to_year'],
+                'created_at'  => $now,
+                'updated_at'  => $now,
+            ];
+        }
+
+        if (!empty($newBudgetsData)) {
+            Budget::insert($newBudgetsData);
+        }
 
         return redirect(route('budgets.index'));
     }
