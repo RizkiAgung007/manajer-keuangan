@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Transaction extends Model
 {
@@ -18,7 +19,8 @@ class Transaction extends Model
         'amount',
         'description',
         'transaction_date',
-        'user_id'
+        'user_id',
+        'attachment_path'
     ];
 
     /**
@@ -35,5 +37,13 @@ class Transaction extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * The tags that belong to this transaction
+     */
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'tag_transaction_pivot');
     }
 }

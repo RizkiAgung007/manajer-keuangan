@@ -16,8 +16,42 @@
                         {{ __('Dashboard') }}
                     </x-nav-link>
 
-                    <x-nav-link :href="route('transactions.index')" :active="request()->routeIs('transactions.index')">
-                        {{ __('Transactions') }}
+                    <div class="hidden sm:flex sm:items-center sm:ms-10">
+                        <x-dropdown align="left" width="48">
+
+                            <x-slot name="trigger">
+                                <button class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none
+
+                                    @if (request()->routeIs('transactions.*') || request()->routeIs('recurring-transactions.*'))
+                                        border-green-500 dark:border-green-600 text-gray-900 dark:text-gray-100 focus:border-green-700
+                                    @else
+                                        border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700 hover:text-gray-700 dark:hover:text-gray-300 focus:border-gray-300 dark:focus:border-gray-700 focus:text-gray-700 dark:focus:text-gray-300
+                                    @endif
+                                ">
+
+                                    <div>{{ __('Transactions') }}</div>
+
+                                    <div class="ms-1">
+                                        <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                </button>
+                            </x-slot>
+
+                            <x-slot name="content">
+                                <x-dropdown-link :href="route('transactions.index')" :active="request()->routeIs('transactions.index')">
+                                    {{ __('All Transactions') }}
+                                </x-dropdown-link>
+                                <x-dropdown-link :href="route('recurring-transactions.index')" :active="request()->routeIs('recurring-transactions.index')">
+                                    {{ __('Recurring') }}
+                                </x-dropdown-link>
+                            </x-slot>
+                        </x-dropdown>
+                    </div>
+
+                    <x-nav-link :href="route('tags.index')" :active="request()->routeIs('tags.index')">
+                        {{ __('Tags') }}
                     </x-nav-link>
 
                     <x-nav-link :href="route('categories.index')" :active="request()->routeIs('categories.index')">

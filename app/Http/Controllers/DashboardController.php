@@ -49,6 +49,8 @@ class DashboardController extends Controller
         $incomeCategories = $categories->where('type', 'income');
         $expenseCategories = $categories->where('type', 'expense');
 
+        $tags = $user->tags()->orderBy('name')->get();
+
         return view('dashboard', [
             'totalIncome'        => $totalIncome,
             'totalExpense'       => $totalExpense,
@@ -58,6 +60,7 @@ class DashboardController extends Controller
             'expenseChartData'   => $expenseChartData,
             'incomeCategories'   => $incomeCategories,
             'expenseCategories'  => $expenseCategories,
+            'tags'               => $tags
         ]);
     }
 }

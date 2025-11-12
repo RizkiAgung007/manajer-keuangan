@@ -6,29 +6,26 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6" x-data="{ showFilters: false }">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6"
+             x-data="{
+                showFilters: false,
+                date_from: '{{ $filters['date_from'] }}',
+                date_to: '{{ $filters['date_to'] }}'
+             }">
 
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-4 sm:p-6">
                     <div class="flex flex-col md:flex-row gap-4 justify-between items-center">
-
                         <form method="GET" action="{{ route('transactions.index') }}" class="flex-grow w-full md:w-auto">
                             <x-input-label for="search" :value="__('Search Description')" class="sr-only" />
-                            <x-text-input
-                                id="search"
-                                class="block mt-1 w-full"
-                                type="text"
-                                name="search"
-                                :value="$filters['search']"
-                                placeholder="Search by description..." />
+                            <x-text-input id="search" class="block mt-1 w-full" type="text" name="search" :value="$filters['search']" placeholder="Search by description..." />
                         </form>
-
                         <button type="button" @click="showFilters = !showFilters" class="flex-shrink-0 inline-flex items-center text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
                             <x-heroicon-o-adjustments-horizontal class="w-5 h-5 me-2"/>
                             <span x-show="!showFilters">Show Filters</span>
                             <span x-show="showFilters" style="display: none;">Hide Filters</span>
                         </button>
-                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -69,16 +66,35 @@
                                 </select>
                             </div>
 
-                            <div>
-                                <x-input-label for="date_from" :value="__('Date From')" />
-                                <x-text-input id="date_from" class="block mt-1 w-full" type="date" name="date_from" :value="$filters['date_from']" />
-                            </div>
+                            <div class="md:col-span-2">
+                                <x-input-label :value="__('Date Range')" />
 
-                            <div>
-                                <x-input-label for="date_to" :value="__('Date To')" />
-                                <x-text-input id="date_to" class="block mt-1 w-full" type="date" name="date_to" :value="$filters['date_to']" />
-                            </div>
+                                <div class="flex items-center space-x-2 mt-1">
+                                    <button type="button" @click="date_from = '{{ $dates['this_month_start'] }}'; date_to = '{{ $dates['this_month_end'] }}'"
+                                        class="px-2 py-0.5 text-xs font-semibold text-green-700 bg-green-100 rounded-full hover:bg-green-200 dark:bg-green-900 dark:text-green-300">
+                                        This Month
+                                    </button>
+                                    <button type="button" @click="date_from = '{{ $dates['last_month_start'] }}'; date_to = '{{ $dates['last_month_end'] }}'"
+                                        class="px-2 py-0.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300">
+                                        Last Month
+                                    </button>
+                                    <button type="button" @click="date_from = '{{ $dates['this_year_start'] }}'; date_to = '{{ $dates['this_year_end'] }}'"
+                                        class="px-2 py-0.5 text-xs font-semibold text-gray-700 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300">
+                                        This Year
+                                    </button>
+                                </div>
 
+                                <div class="grid grid-cols-2 gap-2 mt-2">
+                                    <div>
+                                        <x-input-label for="date_from" :value="__('From')" class="text-xs" />
+                                        <x-text-input id="date_from" class="block mt-1 w-full" type="date" name="date_from" x-model="date_from" />
+                                    </div>
+                                    <div>
+                                        <x-input-label for="date_to" :value="__('To')" class="text-xs" />
+                                        <x-text-input id="date_to" class="block mt-1 w-full" type="date" name="date_to" x-model="date_to" />
+                                    </div>
+                                </div>
+                            </div>
                             <div class="flex flex-col justify-end gap-4">
                                 <x-primary-button class="w-full justify-center h-10">
                                     <x-heroicon-o-funnel class="w-4 h-4 me-2" />
@@ -94,6 +110,7 @@
                     </form>
                 </div>
             </div>
+
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
 
@@ -137,7 +154,7 @@
                                             Rp. {{ number_format($transaction->amount, 0, ',', '.') }}
                                         </td>
                                         <td class="px-6 py-4 flex items-center justify-center space-x-3">
-                                            <a href="{{ route('transactions.show', $transaction->id) }}" class="font-medium text-gray-600 dark:text-gray-400 hover:underline">
+                                            <a href="{{ route('transactions.show', $transaction->id) }}" class="font-medium text-yellow-600 dark:text-yellow-400 hover:underline">
                                                 <x-heroicon-o-eye class="w-5 h-5"/>
                                             </a>
                                             <a href="{{ route('transactions.edit', $transaction->id) }}" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">

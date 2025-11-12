@@ -113,7 +113,7 @@
                         {{ __('Add New Transaction') }}
                     </h2>
 
-                    <form method="POST" action="{{ route('transactions.store') }}" class="mt-6 space-y-6" x-data="{ type: 'expense' }">
+                    <form method="POST" action="{{ route('transactions.store') }}" class="mt-6 space-y-6" x-data="{ type: 'expense' }" enctype="multipart/form-data">
                         @csrf
 
                         <div>
@@ -132,7 +132,7 @@
 
                         <div>
                             <x-input-label for="category_id" :value="__('Category')" />
-                            <select name="category_id" id="category_id" x-show="type === 'expense'" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-green-500 dark:focus:border-green-600 focus:ring-green-500 dark:focus:ring-green-600 rounded-md shadow-sm">
+                            <select name="category_id" id="category_id_modal" x-show="type === 'expense'" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-green-500 dark:focus:border-green-600 focus:ring-green-500 dark:focus:ring-green-600 rounded-md shadow-sm">
                                 <option value="">{{ __('Select an expense category') }}</option>
                                 @foreach ($expenseCategories as $category)
                                     <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>
@@ -140,7 +140,7 @@
                                     </option>
                                 @endforeach
                             </select>
-                            <select name="category_id_income" x-show="type === 'income'" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-green-500 dark:focus:border-green-600 focus:ring-green-500 dark:focus:ring-green-600 rounded-md shadow-sm">
+                            <select name="category_id_income" id="category_id_income_modal" x-show="type === 'income'" style="display: none;" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-green-500 dark:focus:border-green-600 focus:ring-green-500 dark:focus:ring-green-600 rounded-md shadow-sm">
                                 <option value="">{{ __('Select an income category') }}</option>
                                 @foreach ($incomeCategories as $category)
                                     <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>
@@ -152,23 +152,51 @@
                         </div>
 
                         <div>
-                            <x-input-label for="amount" :value="__('Amount')" />
-                            <x-text-input id="amount" class="block mt-1 w-full" type="number" name="amount" :value="old('amount')" required />
+                            <x-input-label for="amount_modal" :value="__('Amount')" />
+                            <x-text-input id="amount_modal" class="block mt-1 w-full" type="number" name="amount" :value="old('amount')" required />
                             <x-input-error :messages="$errors->get('amount')" class="mt-2" />
                         </div>
 
                         <div>
-                            <x-input-label for="description" :value="__('Description')" />
-                            <x-text-input id="description" class="block mt-1 w-full" type="text" name="description" :value="old('description')" />
+                            <x-input-label for="description_modal" :value="__('Description')" />
+                            <x-text-input id="description_modal" class="block mt-1 w-full" type="text" name="description" :value="old('description')" />
                             <x-input-error :messages="$errors->get('description')" class="mt-2" />
                         </div>
 
                         <div>
-                            <x-input-label for="transaction_date" :value="__('Transaction Date')" />
-                            <x-text-input id="transaction_date" class="block mt-1 w-full" type="date" name="transaction_date" :value="old('transaction_date', date('Y-m-d'))" required />
+                            <x-input-label for="transaction_date_modal" :value="__('Transaction Date')" />
+                            <x-text-input id="transaction_date_modal" class="block mt-1 w-full" type="date" name="transaction_date" :value="old('transaction_date', date('Y-m-d'))" required />
                             <x-input-error :messages="$errors->get('transaction_date')" class="mt-2" />
                         </div>
 
+                        <div class="mt-4">
+                            <x-input-label :value="__('Tags (Optional)')" />
+                            <div class="mt-2 p-4 border border-gray-300 dark:border-gray-700 rounded-md">
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-40 overflow-y-auto">
+                                    @forelse ($tags as $tag) <label for="modal_tag_{{ $tag->id }}" class="inline-flex items-center">
+                                            <input id="modal_tag_{{ $tag->id }}"
+                                                type="checkbox"
+                                                name="tags[]"
+                                                value="{{ $tag->id }}"
+                                                @if(is_array(old('tags')) && in_array($tag->id, old('tags'))) checked @endif
+                                                class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-green-600 shadow-sm focus:ring-green-500 dark:focus:ring-green-600 dark:focus:ring-offset-gray-800">
+                                            <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">{{ $tag->name }}</span>
+                                        </label>
+                                    @empty
+                                        <div class="col-span-full text-sm text-gray-500 italic">
+                                            You haven't created any tags yet.
+                                            <a href="{{ route('tags.create') }}" class="underline text-green-600">Create one now</a>.
+                                        </div>
+                                    @endforelse
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <x-input-label for="attachment_modal" :value="__('Attach Receipt (Optional)')" />
+                            <x-text-input id="attachment_modal" name="attachment" type="file" class="block mt-1 w-full file:border-0 file:bg-gray-100 file:dark:bg-gray-700 file:text-gray-700 file:dark:text-gray-300 file:px-4 file:py-2 file:rounded-lg file:mr-4 hover:file:bg-gray-200 dark:hover:file:bg-gray-600 cursor-pointer" />
+                            <x-input-error :messages="$errors->get('attachment')" class="mt-2" />
+                        </div>
                         <div class="flex items-center justify-end">
                             <x-secondary-button x-on:click="$dispatch('close')">
                                 {{ __('Cancel') }}

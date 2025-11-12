@@ -7,7 +7,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use App\Models\Category;
 use App\Models\Transaction;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class TransactionController extends Controller
@@ -26,6 +28,16 @@ class TransactionController extends Controller
             'date_from'     => $request->input('date_from'),
             'date_to'       => $request->input('date_to'),
             'sort'          => $request->input('sort', 'desc'),
+        ];
+
+        $today = Carbon::today();
+        $dates = [
+            'this_month_start'  => $today->copy()->startOfMonth()->toDateString(),
+            'this_month_end'    => $today->copy()->endOfMonth()->toDateString(),
+            'last_month_start'  => $today->copy()->subMonthNoOverflow()->startOfMonth()->toDateString(),
+            'last_month_end'    => $today->copy()->subMonthNoOverflow()->endOfMonth()->toDateString(),
+            'this_year_start'   => $today->copy()->startOfYear()->toDateString(),
+            'this_year_end'     => $today->copy()->endOfYear()->toDateString()
         ];
 
         $query = $user->transactions()->with('category')
@@ -53,7 +65,8 @@ class TransactionController extends Controller
         return view('transactions.index', [
             'transactions'  => $transactions,
             'categories'    => $categories,
-            'filters'       => $filters
+            'filters'       => $filters,
+            'dates'         => $dates
         ]);
     }
 
@@ -67,9 +80,12 @@ class TransactionController extends Controller
         $incomeCategories = $categories->where('type', 'income');
         $expenseCategories = $categories->where('type', 'expense');
 
+        $tags = Auth::user()->tags()->orderBy('name')->get();
+
         return view('transactions.create', [
             'incomeCategories'  => $incomeCategories,
             'expenseCategories' => $expenseCategories,
+            'tags'              => $tags
         ]);
     }
 
@@ -92,11 +108,29 @@ class TransactionController extends Controller
             'amount'            => 'required|numeric|min:0',
             'description'       => 'nullable|string|max:255',
             'transaction_date'  => 'required|date',
+            'attachment'        => 'nullable|file|image|max:2048',
+            'tags'              => 'nullable|array',
+            'tags.*'            => ['integer', Rule::exists('tags', 'id')->where('user_id', auth()->id())],
         ]);
 
-        $request->user()->transactions()->create($validated);
+        $attachmentPath = null;
+        if ($request->hasFile('attachment')) {
+            $attachmentPath = $request->file('attachment')->store('attachments', 'public');
+        }
 
-        return redirect()->back();
+        $transaction = $request->user()->transactions()->create([
+            'category_id'       => $validated['category_id'],
+            'amount'            => $validated['amount'],
+            'description'       => $validated['description'],
+            'transaction_date'  => $validated['transaction_date'],
+            'attachment_path'   => $attachmentPath
+        ]);
+
+        if ($request->has('tags')) {
+            $transaction->tags()->sync($validated['tags']);
+        }
+
+        return redirect()->back()->with('status', 'transaction-created');
     }
 
     /**
@@ -109,7 +143,7 @@ class TransactionController extends Controller
         }
 
         return view('transactions.show', [
-            'transaction' => $transaction->load('category')
+            'transaction' => $transaction->load(['category', 'tags'])
         ]);
     }
 
@@ -126,10 +160,16 @@ class TransactionController extends Controller
         $incomeCategories = $categories->where('type', 'income');
         $expenseCategories = $categories->where('type', 'expense');
 
+        $allTags = Auth::user()->tags()->orderBy('name')->get();
+
+        $transactionTags = $transaction->tags->pluck('id');
+
         return view('transactions.edit', [
             'transaction'       => $transaction,
             'incomeCategories'  => $incomeCategories,
-            'expenseCategories' => $expenseCategories
+            'expenseCategories' => $expenseCategories,
+            'allTags'           => $allTags,
+            'transactionTags'   => $transactionTags
         ]);
     }
 
@@ -156,9 +196,36 @@ class TransactionController extends Controller
             'amount'            => 'required|numeric|min:0',
             'description'       => 'nullable|string|max:255',
             'transaction_date'  => 'required|date',
+            'attachment'        => 'nullable|file|image|max:2048',
+            'delete_attachment' => 'nullable|boolean',
+            'tags'              => 'nullable|array',
+            'tags.*'            => ['integer', Rule::exists('tags', 'id')->where('user_id', auth()->id())],
         ]);
 
-        $transaction->update($validated);
+        $dataToUpdate = [
+            'category_id'       => $validated['category_id'],
+            'amount'            => $validated['amount'],
+            'description'       => $validated['description'],
+            'transaction_date'  => $validated['transaction_date'],
+        ];
+
+        if ($request->hasFile('attachment')) {
+            if ($transaction->attachment_path) {
+                Storage::disk('public')->delete($transaction->attachment_path);
+            }
+
+            $dataToUpdate['attachment_path'] = $request->file('attachment')->store('attachments', 'public');
+        } elseif ($request->input('delete_attachment')) {
+            if ($transaction->attachment_path) {
+                Storage::disk('public')->delete($transaction->attachment_path);
+            }
+
+            $dataToUpdate['attachment_path'] = null;
+        }
+
+        $transaction->update($dataToUpdate);
+
+        $transaction->tags()->sync($request->input('tags', []));
 
         return redirect(route('transactions.index'));
     }
