@@ -40,6 +40,7 @@ Route::middleware('auth')->group(function () {
 
     // Tag
     Route::resource('tags', TagController::class);
+    Route::post('/tags/update-order', [TagController::class])->name('tags.updateOrder');
 });
 
 require __DIR__.'/auth.php';

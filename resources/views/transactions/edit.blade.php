@@ -32,20 +32,38 @@
                             <x-input-label for="category_id" :value="__('Category')" />
                             <select name="category_id" id="category_id_edit" x-show="type === 'expense'" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-green-500 dark:focus:border-green-600 focus:ring-green-500 dark:focus:ring-green-600 rounded-md shadow-sm">
                                 <option value="">{{ __('Select an expense category') }}</option>
-                                @foreach ($expenseCategories as $category)
-                                    <option value="{{ $category->id }}" {{ old('category_id', $transaction->category_id) == $category->id ? 'selected' : '' }}>
-                                        {{ $category->name }}
+
+                                @foreach ($expenseCategories as $parent)
+                                    <option value="{{ $parent->id }}" {{ old('category_id', $transaction->category_id) == $parent->id ? 'selected' : '' }}>
+                                        {{ $parent->name }}
                                     </option>
+
+                                    @foreach ($parent->children as $child)
+                                        <option value="{{ $child->id }}" {{ old('category_id', $transaction->category_id) == $child->id ? 'selected' : '' }}>
+                                            &nbsp;&nbsp;└ {{ $child->name }}
+                                        </option>
+                                    @endforeach
                                 @endforeach
+
                             </select>
+
                             <select name="category_id_income" id="category_id_income_edit" x-show="type === 'income'" style="display: none;" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-green-500 dark:focus:border-green-600 focus:ring-green-500 dark:focus:ring-green-600 rounded-md shadow-sm">
                                 <option value="">{{ __('Select an income category') }}</option>
-                                @foreach ($incomeCategories as $category)
-                                    <option value="{{ $category->id }}" {{ old('category_id', $transaction->category_id) == $category->id ? 'selected' : '' }}>
-                                        {{ $category->name }}
+
+                                @foreach ($incomeCategories as $parent)
+                                    <option value="{{ $parent->id }}" {{ old('category_id_income', $transaction->category_id) == $parent->id ? 'selected' : '' }}>
+                                        {{ $parent->name }}
                                     </option>
+
+                                    @foreach ($parent->children as $child)
+                                        <option value="{{ $child->id }}" {{ old('category_id_income', $transaction->category_id) == $child->id ? 'selected' : '' }}>
+                                            &nbsp;&nbsp;└ {{ $child->name }}
+                                        </option>
+                                    @endforeach
                                 @endforeach
+
                             </select>
+                            
                             <x-input-error :messages="$errors->get('category_id')" class="mt-2" />
                         </div>
 

@@ -41,11 +41,19 @@
                                 <x-input-label for="category_id" :value="__('Category')" />
                                 <select name="category_id" id="category_id" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-green-500 dark:focus:border-green-600 focus:ring-green-500 dark:focus:ring-green-600 rounded-md shadow-sm">
                                     <option value="">All Categories</option>
-                                    @foreach ($categories as $category)
-                                        <option value="{{ $category->id }}" {{ $filters['category_id'] == $category->id ? 'selected' : '' }}>
-                                            {{ $category->name }}
+
+                                    @foreach ($categories as $parent)
+                                        <option value="{{ $parent->id }}" {{ $filters['category_id'] == $parent->id ? 'selected' : '' }}>
+                                            {{ $parent->name }}
                                         </option>
+
+                                        @foreach ($parent->children as $child)
+                                            <option value="{{ $child->id }}" {{ $filters['category_id'] == $child->id ? 'selected' : '' }}>
+                                                &nbsp;&nbsp;└ {{ $child->name }}
+                                            </option>
+                                        @endforeach
                                     @endforeach
+
                                 </select>
                             </div>
 

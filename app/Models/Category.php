@@ -17,7 +17,8 @@ class Category extends Model
     protected $fillable = [
         'name',
         'type',
-        'order_column'
+        'order_column',
+        'parent_id'
     ];
 
     /**
@@ -51,4 +52,29 @@ class Category extends Model
     {
         return $this->hasMany(RecurringTransaction::class);
     }
+
+    /**
+     * Get the parent category that this sub-category belongs to
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'parent_id');
+    }
+
+    /**
+     * Get all of the children sub-category for this category
+     */
+    public function children(): HasMany
+    {
+        return $this->hasMany(Category::class, 'parent_id');
+    }
+
+    /**
+     * Scope a query to only include parent categories
+     */
+    public function scopeParentCategories($query)
+    {
+        return $query->whereNull('parent_id');
+    }
+
 }

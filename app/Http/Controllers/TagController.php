@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Tag;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,8 +18,12 @@ class TagController extends Controller
     public function index(): View
     {
         $user = Auth::user();
+        $now = Carbon::now();
 
-        $tags = $user->tags()->orderBy('name', 'desc')->get();
+        $tags = $user->tags()->withCount('transactions')
+                    ->withSum(['transactions as spent_this_month' => function ($query) use ($now) {
+                        $query->whereYear('transaction_date', $now->year)->whereMonth('transaction_date', $now->month);
+                    }], 'amount')->orderBy('order_column', 'asc')->get();
 
         return view('tags.index', [
             'tags'  => $tags
@@ -42,6 +47,10 @@ class TagController extends Controller
             'name'  => ['required','string','max:255', Rule::unique('tags')->where('user_id', auth()->id())]
         ]);
 
+        $maxOrder = $request->user()->tags()->max('order_column');
+
+        $validated['order_column'] = $maxOrder + 1;
+
         $request->user()->tags()->create($validated);
 
         return redirect(route('tags.index'));
@@ -64,7 +73,9 @@ class TagController extends Controller
             abort(403);
         }
 
-        return view('tags.edit');
+        return view('tags.edit', [
+            'tag'   => $tag
+        ]);
     }
 
     /**
@@ -77,7 +88,7 @@ class TagController extends Controller
         }
 
         $validated = $request->validate([
-            'name'  => ['required','string','max:255', Rule::unique('tags')->where('user_id', auth()->id())]
+            'name'  => ['required','string','max:255', Rule::unique('tags')->where('user_id', auth()->id())->ignore($tag->id)]
         ]);
 
         $tag->update($validated);
@@ -97,5 +108,24 @@ class TagController extends Controller
         $tag->delete();
 
         return redirect(route('tags.index'));
+    }
+
+    /**
+     * Update the display order tags
+     */
+    public function updateOrder(Request $request)
+    {
+        $request->validate([
+            'order'   => 'required|array',
+            'order.*' => 'integer|exists:tags,id',
+        ]);
+
+        $user = $request->user();
+
+        foreach($request->input('order') as $index => $tagId) {
+            $user->tags()->where('id', $tagId)->update(['order_column' => $index + 1]);
+        }
+
+        return response()->json(['status', 'success']);
     }
 }

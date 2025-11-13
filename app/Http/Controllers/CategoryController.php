@@ -20,7 +20,8 @@ class CategoryController extends Controller
         $user = Auth::user();
         $now = Carbon::now();
 
-        $categories = $user->categories()->withSum([
+        $sumQueries = function ($query) use ($now) {
+            $query->withSum([
                 'transactions as spent_this_month' => function ($query) use ($now) {
                     $query->whereYear('transaction_date', $now->year)
                           ->whereMonth('transaction_date', $now->month);
@@ -31,9 +32,20 @@ class CategoryController extends Controller
                     $query->where('year', $now->year)
                           ->where('month', $now->month);
                 }
-            ], 'amount')
-            ->orderBy('order_column', 'asc')
-            ->get();
+            ], 'amount');
+        };
+
+        $categories = Category::where('user_id', $user->id)
+                        ->parentCategories()
+                        ->tap($sumQueries)
+                        ->with([
+                            'children' => function ($query) use ($sumQueries) {
+                                $query->tap($sumQueries)
+                                    ->orderBy('order_column', 'asc');
+                            }
+                        ])
+                        ->orderBy('order_column', 'asc')
+                        ->get();
 
         return view('categories.index', [
             'categories' => $categories
@@ -45,7 +57,11 @@ class CategoryController extends Controller
      */
     public function create(): View
     {
-        return view('categories.create');
+        $parentCategories = Category::where('user_id', Auth::id())
+                            ->parentCategories()
+                            ->get();
+
+        return view('categories.create', compact('parentCategories'));
     }
 
     /**
@@ -54,11 +70,24 @@ class CategoryController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name'  => 'required|string|max:255',
-            'type'  => ['required', Rule::in(['income', 'expense'])],
+            'name'      => 'required|string|max:255',
+            'type'      => ['required', Rule::in(['income', 'expense'])],
+            'parent_id' => ['nullable', 'integer', Rule::exists('categories', 'id')
+                            ->where(function ($query) {
+                                $query->where('user_id', Auth::id());
+                            })]
         ]);
 
-        $maxOrder = $request->user()->categories()->max('order_column');
+        $query = $request->user()->categories();
+
+        if ($request->filled('parent_id')) {
+            $maxOrder = $query->where('parent_id', $request->parent_id)->max('order_column');
+            $validated['parent_id'] = $request->parent_id;
+        } else {
+            $maxOrder = $query->whereNull('parent_id')->max('order_column');
+            $validated['parent_id'] = null;
+        }
+
         $validated['order_column'] = $maxOrder + 1;
 
         $request->user()->categories()->create($validated);
@@ -108,7 +137,7 @@ class CategoryController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Category $category)
+    public function destroy(Category $category): RedirectResponse
     {
         if (auth()->user()->id !== $category->user_id) {
             abort(403);
@@ -132,7 +161,9 @@ class CategoryController extends Controller
         $user = $request->user();
 
         foreach ($request->input('order') as $index => $categoryId) {
-            $user->categories()->where('id', $categoryId)->update(['order_column' => $index + 1]);
+            $user->categories()
+                    ->where('id', $categoryId)
+                    ->update(['order_column' => $index + 1]);
         }
 
         return response()->json(['status' => 'success']);

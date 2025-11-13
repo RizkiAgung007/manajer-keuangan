@@ -17,7 +17,11 @@ class DashboardController extends Controller
         $user = Auth::user();
         $now = Carbon::now();
 
-        $transactions = $user->transactions()->with('category')->whereYear('transaction_date', $now->year)->whereMonth('transaction_date', $now->month)->get();
+        $transactions = $user->transactions()
+                        ->with('category')
+                        ->whereYear('transaction_date', $now->year)
+                        ->whereMonth('transaction_date', $now->month)
+                        ->get();
 
         $totalIncome = $transactions->where('category.type', 'income')->sum('amount');
         $totalExpense = $transactions->where('category.type', 'expense')->sum('amount');

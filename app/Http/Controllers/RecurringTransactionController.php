@@ -19,7 +19,10 @@ class RecurringTransactionController extends Controller
     {
         $user = Auth::user();
 
-        $recurringTransactions = $user->recurringTransactions()->with('category')->orderBy('day_of_month', 'asc')->get();
+        $recurringTransactions = $user->recurringTransactions()
+                                    ->with('category')
+                                    ->orderBy('day_of_month', 'asc')
+                                    ->get();
 
         return view('recurring-transactions.index', [
             'transactions' => $recurringTransactions

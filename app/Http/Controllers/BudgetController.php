@@ -20,9 +20,18 @@ class BudgetController extends Controller
     {
         $user = Auth::user();
 
-        $budgets = $user->budgets()->with('category')->orderBy('year', 'desc')->orderBy('month', 'desc')->get();
+        $budgets = $user->budgets()
+                    ->with('category')
+                    ->orderBy('year', 'desc')
+                    ->orderBy('month', 'desc')
+                    ->get();
 
-        $existingPeriods = $user->budgets()->select('year', 'month')->distinct()->orderBy('year', 'desc')->orderBy('month', 'desc')->get();
+        $existingPeriods = $user->budgets()
+                            ->select('year', 'month')
+                            ->distinct()
+                            ->orderBy('year', 'desc')
+                            ->orderBy('month', 'desc')
+                            ->get();
 
         return view('budgets.index', [
             'budgets'         => $budgets,
@@ -35,7 +44,10 @@ class BudgetController extends Controller
      */
     public function create(): View
     {
-        $expenseCategories = Auth::user()->categories()->where('type', 'expense')->get();
+        $user = Auth::user();
+        $expenseCategories = $user->categories()
+                              ->where('type', 'expense')
+                              ->get();
 
         return view('budgets.create', [
             'expenseCategories' => $expenseCategories
@@ -54,7 +66,11 @@ class BudgetController extends Controller
             'year'          => 'required|integer|min:' . date('Y'),
         ]);
 
-        $existing = Budget::where('user_id', auth()->id())->where('category_id', $validated['category_id'])->where('month', $validated['month'])->where('year', $validated['year'])->exists();
+        $existing = Budget::where('user_id', auth()->id())
+                    ->where('category_id', $validated['category_id'])
+                    ->where('month', $validated['month'])
+                    ->where('year', $validated['year'])
+                    ->exists();
 
         if($existing) {
             return back()->withErrors([
@@ -84,7 +100,10 @@ class BudgetController extends Controller
             abort(403);
         }
 
-        $expenseCategories = Auth::user()->categories()->where('type', 'expense')->get();
+        $user = Auth::user();
+        $expenseCategories = $user->categories()
+                              ->where('type', 'expense')
+                              ->get();
 
         return view('budgets.edit', [
             'budget'            => $budget,
@@ -108,7 +127,12 @@ class BudgetController extends Controller
             'year'          => 'required|integer|min:' . date('Y'),
         ]);
 
-        $existing = Budget::where('user_id', auth()->id())->where('category_id', $validated['category_id'])->where('month', $validated['month'])->where('year', $validated['year'])->where('id', '!=', $budget->id)->exists();
+        $existing = Budget::where('user_id', auth()->id())
+                    ->where('category_id', $validated['category_id'])
+                    ->where('month', $validated['month'])
+                    ->where('year', $validated['year'])
+                    ->where('id', '!=', $budget->id)
+                    ->exists();
 
         if ($existing) {
             return back()->withErrors([
@@ -155,18 +179,18 @@ class BudgetController extends Controller
         $user = $request->user();
 
         $budgetsToCopy = $user->budgets()
-                              ->where('year', $fromYear)
-                              ->where('month', $fromMonth)
-                              ->get();
+                          ->where('year', $fromYear)
+                          ->where('month', $fromMonth)
+                          ->get();
 
         if ($budgetsToCopy->isEmpty()) {
             return back()->withErrors(['from_period' => 'No budgets found for the selected period.']);
         }
 
         $existingBudgets = $user->budgets()
-                                 ->where('year', $validated['to_year'])
-                                 ->where('month', $validated['to_month'])
-                                 ->pluck('category_id');
+                            ->where('year', $validated['to_year'])
+                            ->where('month', $validated['to_month'])
+                            ->pluck('category_id');
 
         $newBudgetsData = [];
         $now = Carbon::now();

@@ -6,7 +6,6 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
-// Pastikan model-model ini ada
 use App\Models\Category;
 use App\Models\Budget;
 
@@ -18,62 +17,98 @@ class ReportController extends Controller
         $selectedYear = $request->input('year', Carbon::now()->year);
         $selectedMonth = $request->input('month', Carbon::now()->month);
         $date = Carbon::createFromDate($selectedYear, $selectedMonth, 1);
+        $startDate = $date->copy()->startOfMonth();
+        $endDate = $date->copy()->endOfMonth();
 
+        $allTransactions = $user->transactions()
+            ->with('category')
+            ->whereBetween('transaction_date', [$startDate, $endDate])
+            ->get();
 
-        $allTransactions = $user->transactions()->with('category')->whereYear('transaction_date', $selectedYear)->whereMonth('transaction_date', $selectedMonth)->get();
+        $transactionsForTable = $user->transactions()
+            ->with('category')
+            ->whereBetween('transaction_date', [$startDate, $endDate])
+            ->orderBy('transaction_date', 'desc')
+            ->paginate(10)
+            ->withQueryString();
 
-        $transactionsForTable = $user->transactions()->with('category')->whereYear('transaction_date', $selectedYear)->whereMonth('transaction_date', $selectedMonth)->orderBy('transaction_date', 'desc')->paginate(10);
+        $childToParentMap = Category::where('user_id', $user->id)
+            ->whereNotNull('parent_id')
+            ->pluck('parent_id', 'id');
 
-        $expenseByCategory = $allTransactions->where('category.type', 'expense')->groupBy('category.name')
-                                          ->map(fn ($group) => $group->sum('amount'));
+        $parentCategories = Category::where('user_id', $user->id)
+            ->parentCategories()
+            ->with('children')
+            ->get()
+            ->keyBy('id');
 
-        $expenseChartData = [
-            'labels' => $expenseByCategory->keys(),
-            'series' => $expenseByCategory->values(),
-        ];
+        $groupedByParent = $allTransactions->groupBy(function ($tx) use ($childToParentMap) {
+            return $childToParentMap[$tx->category_id] ?? $tx->category_id;
+        });
 
-        $incomeByCategory = $allTransactions->where('category.type', 'income')->groupBy('category.name')
-                                         ->map(fn ($group) => $group->sum('amount'));
+        $reportData = $groupedByParent->map(function ($group, $parent_id) use ($parentCategories) {
+            $category = $parentCategories->get($parent_id);
 
-        $incomeChartData = [
-            'labels' => $incomeByCategory->keys(),
-            'series' => $incomeByCategory->values(),
-        ];
-
-        $budgetsMap = $user->budgets()->where('year', $selectedYear)->where('month', $selectedMonth)->get()->keyBy('category_id');
-
-        $actualByCategoryId = $allTransactions->where('category.type', 'expense')->groupBy('category_id')
-                                         ->map(fn ($group) => $group->sum('amount'));
-
-        $expenseCategories = $user->categories()->where('type', 'expense')->get();
-
-        $budgetComparison = $expenseCategories->map(function ($category) use ($budgetsMap, $actualByCategoryId) {
-            $budget = $budgetsMap->get($category->id);
-            $budgetAmount = $budget ? $budget->amount : 0;
-            $actualAmount = $actualByCategoryId->get($category->id, 0);
-
-            if ($budgetAmount == 0 && $actualAmount == 0) {
+            if (!$category) {
                 return null;
             }
-            $difference = $budgetAmount - $actualAmount;
-            $percentage  = ($budgetAmount > 0) ? ($actualAmount / $budgetAmount) * 100 : 0;
+
             return [
-                'category_name' => $category->name,
-                'budget_amount' => $budgetAmount,
-                'actual_amount' => $actualAmount,
-                'difference'    => $difference,
-                'percentage'    => round($percentage)
+                'id' => $category->id,
+                'name' => $category->name,
+                'type' => $category->type,
+                'total' => $group->sum('amount')
             ];
         })->filter();
 
+        $incomeData = $reportData->where('type', 'income');
+        $incomeChartData = [
+            'labels' => $incomeData->pluck('name')->values()->toArray(),
+            'series' => $incomeData->pluck('total')->values()->toArray(),
+        ];
+
+        $expenseData = $reportData->where('type', 'expense');
+        $expenseChartData = [
+            'labels' => $expenseData->pluck('name')->values()->toArray(),
+            'series' => $expenseData->pluck('total')->values()->toArray(),
+        ];
+
+        $budgetsMap = $user->budgets()
+            ->where('year', $selectedYear)
+            ->where('month', $selectedMonth)
+            ->whereIn('category_id', $parentCategories->keys())
+            ->pluck('amount', 'category_id');
+
+        $rolledUpExpenses = $expenseData->keyBy('id');
+        $budgetComparison = [];
+
+        foreach ($parentCategories->where('type', 'expense') as $parent) {
+            $budgetAmount = $budgetsMap->get($parent->id) ?? 0;
+            $actualAmount = $rolledUpExpenses->get($parent->id)['total'] ?? 0;
+
+            if ($budgetAmount > 0 || $actualAmount > 0) {
+                $difference = $budgetAmount - $actualAmount;
+                $percentage = ($budgetAmount > 0) ? ($actualAmount / $budgetAmount) * 100 : 0;
+
+                $budgetComparison[] = [
+                    'category_name' => $parent->name,
+                    'budget_amount' => $budgetAmount,
+                    'actual_amount' => $actualAmount,
+                    'difference'    => $difference,
+                    'percentage'    => round($percentage)
+                ];
+            }
+        }
+
+
         return view('reports.index', [
-            'transactions'      => $transactionsForTable,
-            'expenseChartData'  => $expenseChartData,
-            'incomeChartData'   => $incomeChartData,
-            'monthName'         => $date->format('F Y'),
-            'selectedYear'      => $selectedYear,
-            'selectedMonth'     => $selectedMonth,
-            'budgetComparison'  => $budgetComparison,
+            'transactions'     => $transactionsForTable, 
+            'expenseChartData' => $expenseChartData,
+            'incomeChartData'  => $incomeChartData,
+            'monthName'        => $date->format('F Y'),
+            'selectedYear'     => $selectedYear,
+            'selectedMonth'    => $selectedMonth,
+            'budgetComparison' => $budgetComparison,
         ]);
     }
 }

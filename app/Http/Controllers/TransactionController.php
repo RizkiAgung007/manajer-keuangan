@@ -60,7 +60,10 @@ class TransactionController extends Controller
         $query->orderBy('transaction_date', $filters['sort']);
 
         $transactions = $query->paginate(10)->withQueryString();
-        $categories = $user->categories()->get();
+        $categories = Category::where('user_id', $user->id)
+                        ->parentCategories()
+                        ->with('children')
+                        ->get();
 
         return view('transactions.index', [
             'transactions'  => $transactions,
@@ -75,12 +78,22 @@ class TransactionController extends Controller
      */
     public function create(): View
     {
-        $categories = Auth::user()->categories;
+        $user = Auth::user();
+        $categories = $user->categories;
 
-        $incomeCategories = $categories->where('type', 'income');
-        $expenseCategories = $categories->where('type', 'expense');
+        $incomeCategories = Category::where('user_id', Auth::id())
+                            ->where('type', 'income')
+                            ->parentCategories()
+                            ->with('children')
+                            ->get();
 
-        $tags = Auth::user()->tags()->orderBy('name')->get();
+        $expenseCategories = Category::where('user_id', Auth::id())
+                            ->where('type', 'expense')
+                            ->parentCategories()
+                            ->with('children')
+                            ->get();
+
+        $tags = $user->tags()->orderBy('name')->get();
 
         return view('transactions.create', [
             'incomeCategories'  => $incomeCategories,
@@ -156,9 +169,20 @@ class TransactionController extends Controller
             abort(403);
         }
 
-        $categories = Auth::user()->categories;
-        $incomeCategories = $categories->where('type', 'income');
-        $expenseCategories = $categories->where('type', 'expense');
+        $user = Auth::user();
+        $categories = $user->categories;
+
+        $incomeCategories = Category::where('user_id', Auth::id())
+                            ->where('type', 'income')
+                            ->parentCategories()
+                            ->with('children')
+                            ->get();
+
+        $expenseCategories = Category::where('user_id', Auth::id())
+                            ->where('type', 'expense')
+                            ->parentCategories()
+                            ->with('children')
+                            ->get();
 
         $allTags = Auth::user()->tags()->orderBy('name')->get();
 

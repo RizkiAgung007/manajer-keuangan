@@ -16,7 +16,8 @@ class Tag extends Model
      */
     protected $fillable = [
         'name',
-        'user_id'
+        'user_id',
+        'order_column'
     ];
 
     /**
@@ -32,6 +33,6 @@ class Tag extends Model
      */
     public function transactions(): BelongsToMany
     {
-        return $this->belongsToMany(Transaction::class, 'tag_transactions_pivot');
+        return $this->belongsToMany(Transaction::class, 'tag_transaction_pivot');
     }
 }

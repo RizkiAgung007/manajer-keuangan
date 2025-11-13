@@ -29,6 +29,22 @@
                             <x-input-error :messages="$errors->get('type')" class="mt-2" />
                         </div>
 
+                        <div class="mt-4">
+                            <x-input-label for="parent_id" :value="__('Parent Category')" />
+
+                            <select name="parent_id" id="parent_id" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-green-500 dark:focus:border-green-600 focus:ring-green-500 dark:focus:ring-green-600 rounded-md shadow-sm">
+
+                                <option value="">{{ __('None') }}</option>
+
+                                @foreach ($parentCategories as $parent)
+                                    <option value="{{ $parent->id }}">{{ $parent->name }}</option>
+                                @endforeach
+
+                            </select>
+
+                            <x-input-error :messages="$errors->get('parent_id')" class="mt-2" />
+                        </div>
+
                         <div class="flex items-center justify-end mt-4">
                             <a href="{{ route('categories.index') }}" class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-25 transition ease-in-out duration-150">
                                 {{ __('Cancel') }}
