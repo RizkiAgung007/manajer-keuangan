@@ -16,26 +16,41 @@ class BudgetController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
         $user = Auth::user();
 
-        $budgets = $user->budgets()
-                    ->with('category')
-                    ->orderBy('year', 'desc')
-                    ->orderBy('month', 'desc')
-                    ->get();
+        $search = $request->input('search');
 
-        $existingPeriods = $user->budgets()
-                            ->select('year', 'month')
-                            ->distinct()
-                            ->orderBy('year', 'desc')
-                            ->orderBy('month', 'desc')
-                            ->get();
+        $budgetsQuery = $user->budgets()
+                        ->with('category')
+                        ->when($search, function ($query, $term) {
+                            $query->whereHas('category', function ($q) use ($term) {
+                                $q->where('name', 'like', "%{$term}%");
+                            });
+                        })
+                        ->orderBy('year', 'desc')
+                        ->orderBy('month', 'desc');
+
+        $budgets = $budgetsQuery->get();
+
+        $existingPeriodsQuery = $user->budgets()
+                                ->select('year', 'month')
+                                ->distinct()
+                                ->when($search, function($query, $term) {
+                                    $query->whereHas('category', function ($q) use ($term) {
+                                        $q->where('name', 'like', "%{$term}%");
+                                    });
+                                })
+                                ->orderBy('year', 'desc')
+                                ->orderBy('month', 'desc');
+
+        $existingPeriods = $existingPeriodsQuery->get();
 
         return view('budgets.index', [
             'budgets'         => $budgets,
-            'existingPeriods' => $existingPeriods
+            'existingPeriods' => $existingPeriods,
+            'search'          => $search
         ]);
     }
 
@@ -47,6 +62,8 @@ class BudgetController extends Controller
         $user = Auth::user();
         $expenseCategories = $user->categories()
                               ->where('type', 'expense')
+                              ->parentCategories()
+                              ->orderBy('order_column')
                               ->get();
 
         return view('budgets.create', [
@@ -60,7 +77,12 @@ class BudgetController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'category_id'   => ['required', Rule::exists('categories', 'id')->where('user_id', auth()->id())->where('type', 'expense')],
+            'category_id'   => ['required', Rule::exists('categories', 'id')
+                                ->where('user_id', auth()
+                                ->id())
+                                ->where('type', 'expense')
+                                ->whereNull('parent_id')
+                                ],
             'amount'        => 'required|numeric|min:0',
             'month'         => 'required|integer|min:1|max:12',
             'year'          => 'required|integer|min:' . date('Y'),
@@ -103,6 +125,8 @@ class BudgetController extends Controller
         $user = Auth::user();
         $expenseCategories = $user->categories()
                               ->where('type', 'expense')
+                              ->parentCategories()
+                              ->orderBy('order_column')
                               ->get();
 
         return view('budgets.edit', [
@@ -121,7 +145,12 @@ class BudgetController extends Controller
         }
 
         $validated = $request->validate([
-            'category_id'   => ['required', Rule::exists('categories', 'id')->where('user_id', auth()->id())->where('type', 'expense')],
+            'category_id'   => ['required', Rule::exists('categories', 'id')
+                                ->where('user_id', auth()
+                                ->id())
+                                ->where('type', 'expense')
+                                ->whereNull('parent_id')
+                            ],
             'amount'        => 'required|numeric|min:0',
             'month'         => 'required|integer|min:1|max:12',
             'year'          => 'required|integer|min:' . date('Y'),
@@ -179,8 +208,12 @@ class BudgetController extends Controller
         $user = $request->user();
 
         $budgetsToCopy = $user->budgets()
-                          ->where('year', $fromYear)
-                          ->where('month', $fromMonth)
+                          ->join('categories', 'budgets.category_id', '=', 'categories.id')
+                          ->where('budgets.year', $fromYear)
+                          ->where('budgets.month', $fromMonth)
+                          ->where('budgets.user_id', $user->id)
+                          ->whereNull('categories.parent_id')
+                          ->select('budgets.*')
                           ->get();
 
         if ($budgetsToCopy->isEmpty()) {

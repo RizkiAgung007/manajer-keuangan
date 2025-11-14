@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-screen-2xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
 
@@ -62,7 +62,7 @@
                                 @endforeach
 
                             </select>
-                            
+
                             <x-input-error :messages="$errors->get('category_id')" class="mt-2" />
                         </div>
 
@@ -85,27 +85,24 @@
                         </div>
 
                         <div class="mt-4">
-                            <x-input-label :value="__('Tags (Optional)')" />
-                            <div class="mt-2 p-4 border border-gray-300 dark:border-gray-700 rounded-md">
-                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-40 overflow-y-auto">
-                                    @forelse ($tags as $tag)
-                                        <label for="tag_{{ $tag->id }}" class="inline-flex items-center">
-                                            <input id="tag_{{ $tag->id }}"
-                                                type="checkbox"
-                                                name="tags[]"
-                                                value="{{ $tag->id }}"
-                                                @if(is_array(old('tags')) && in_array($tag->id, old('tags'))) checked @endif
-                                                class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-green-600 shadow-sm focus:ring-green-500 dark:focus:ring-green-600 dark:focus:ring-offset-gray-800">
-                                            <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">{{ $tag->name }}</span>
-                                        </label>
-                                    @empty
-                                        <div class="col-span-full text-sm text-gray-500 italic">
-                                            You haven't created any tags yet.
-                                            <a href="{{ route('tags.create') }}" class="underline text-green-600">Create one now</a>.
-                                        </div>
-                                    @endforelse
-                                </div>
-                            </div>
+                            <x-input-label for="tags-create" :value="__('Tags (Optional)')" />
+
+                            <select id="tags-create"
+                                    name="tags[]"
+                                    multiple
+                                    placeholder="Search and select tags..."
+                                    autocomplete="off"
+                                    class="block mt-1 w-full">
+
+                                @foreach ($tags as $tag)
+                                    <option value="{{ $tag->id }}"
+                                        {{ (is_array(old('tags')) && in_array($tag->id, old('tags'))) ? 'selected' : '' }}>
+                                        {{ $tag->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+
+                            <x-input-error :messages="$errors->get('tags')" class="mt-2" />
                         </div>
 
                         <div class="mt-4">
@@ -129,4 +126,14 @@
             </div>
         </div>
     </div>
+
+    @push('scripts')
+        <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
+        <script>
+            new TomSelect('#tags-create', {
+                plugins: ['remove_button'],
+            });
+        </script>
+    @endpush
 </x-app-layout>

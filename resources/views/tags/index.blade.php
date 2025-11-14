@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-screen-2xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100" x-data="sortableTags()">
 
@@ -45,9 +45,14 @@
                                             Rp {{ number_format($tag->spent_this_month ?? 0, 0, ',', '.') }}
                                         </td>
                                         <td class="px-6 py-4 flex items-center justify-center space-x-3">
+                                            <a href="{{ route('tags.show', $tag->id) }}" class="font-medium text-yellow-600 dark:text-yellow-500 hover:underline">
+                                                <x-heroicon-o-eye class="w-5 h-5"/>
+                                            </a>
+
                                             <a href="{{ route('tags.edit', $tag->id) }}" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">
                                                 <x-heroicon-o-pencil-square class="w-5 h-5"/>
                                             </a>
+
                                             <form method="POST" action="{{ route('tags.destroy', $tag->id) }}" onsubmit="return confirm('Are you sure? This will not delete transactions, only remove the tag from them.');">
                                                 @csrf
                                                 @method('DELETE')

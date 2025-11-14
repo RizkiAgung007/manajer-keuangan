@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6"
+        <div class="max-w-screen-2xl mx-auto sm:px-6 lg:px-8 space-y-6"
              x-data="{
                 showFilters: false,
                 date_from: '{{ $filters['date_from'] }}',
@@ -135,7 +135,7 @@
                                 <tr>
                                     <th scope="col" class="px-6 py-3 text-center">Date</th>
                                     <th scope="col" class="px-6 py-3 text-center">Category</th>
-                                    <th scope="col" class="px-6 py-3 text-center">Description</th>
+                                    <th scope="col" class="px-6 py-3 text-center">Description & tags</th>
                                     <th scope="col" class="px-6 py-3 text-center">Amount</th>
                                     <th scope="col" class="px-6 py-3 text-center">Actions</th>
                                 </tr>
@@ -150,7 +150,17 @@
                                             {{ $transaction->category->name }}
                                         </td>
                                         <td class="px-6 py-4 text-center">
-                                            {{ $transaction->description ?? '-' }}
+                                            <span class="font-medium text-gray-900 dark:text-white">
+                                                {{ $transaction->description ?? '-' }}
+                                            </span>
+
+                                            <div class="mt-1 flex flex-wrap justify-center gap-1">
+                                                @foreach ($transaction->tags as $tag)
+                                                    <span class="px-2 py-0.5 font-medium text-green-800 bg-green-100 rounded-full dark:bg-green-900 dark:text-green-300">
+                                                        {{ $tag->name }}
+                                                    </span>
+                                                @endforeach
+                                            </div>
                                         </td>
                                         <td class="px-6 py-4 text-center font-medium
                                             @if ($transaction->category->type == 'income')

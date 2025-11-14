@@ -59,9 +59,24 @@ class TagController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Tag $tag): View
     {
+        if (auth()->id() !== $tag->user_id) {
+            abort(403);
+        }
 
+        $tag->loadCount('transactions');
+        $tag->loadSum('transactions as total_spent', 'amount');
+
+        $transactions = $tag->transactions()
+                        ->with('category')
+                        ->orderBy('transaction_date', 'desc')
+                        ->paginate(10);
+
+        return view('tags.show', [
+            'tag'          => $tag,
+            'transactions' => $transactions
+        ]);
     }
 
     /**

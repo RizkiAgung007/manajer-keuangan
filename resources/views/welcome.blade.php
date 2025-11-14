@@ -7,7 +7,7 @@
 
         <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
         <link rel="alternate icon" type="image/png" href="{{ asset('favicon.png') }}">
-        
+
         <title>{{ config('app.name', 'Laravel') }}</title>
 
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -29,7 +29,7 @@
         <div class="min-h-screen flex flex-col">
 
             <header class="w-full shadow-sm bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-                <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <nav class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div class="flex justify-between items-center h-16">
 
                         <div class="flex items-center">
@@ -106,7 +106,7 @@
                 </section>
 
                 <section class="bg-gray-100 dark:bg-gray-900 py-24 sm:py-32">
-                    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+                    <div class="max-w-screen-2xl mx-auto px-6 lg:px-8">
 
                         <div class="max-w-2xl mx-auto text-center">
                             <h2 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">Semua yang Anda Perlukan</h2>

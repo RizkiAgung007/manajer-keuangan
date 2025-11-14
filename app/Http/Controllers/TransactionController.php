@@ -40,7 +40,7 @@ class TransactionController extends Controller
             'this_year_end'     => $today->copy()->endOfYear()->toDateString()
         ];
 
-        $query = $user->transactions()->with('category')
+        $query = $user->transactions()->with(['category', 'tags'])
                     ->when($filters['search'], function ($q, $search) {
                         return $q->where('description', 'like', "%{$search}%");
                     })

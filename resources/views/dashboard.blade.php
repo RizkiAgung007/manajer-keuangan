@@ -13,9 +13,9 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+        <div class="max-w-screen-2xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
                         <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -44,6 +44,39 @@
                         <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
                             Rp {{ number_format($netProfit, 0, ',', '.') }}
                         </dd>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6">
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Budget Used
+                        </dt>
+                        <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
+                            Rp {{ number_format($totalExpense, 0, ',', '.') }}
+                        </dd>
+                        <div class="mt-2">
+                            @if ($totalBudget > 0)
+                                @php
+                                    $badgeColor = '';
+                                    if ($budgetPercentage > 100) {
+                                        $badgeColor = 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+                                    } elseif ($budgetPercentage >= 80) {
+                                        $badgeColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+                                    } else {
+                                        $badgeColor = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+                                    }
+                                @endphp
+                                <span class="px-3 py-1 text-xs font-medium rounded-full {{ $badgeColor }}">
+                                    {{ $budgetPercentage }}% Used
+                                </span>
+                                <span class="text-sm text-gray-500 dark:text-gray-400 ms-2">
+                                    (of Rp {{ number_format($totalBudget, 0, ',', '.') }})
+                                </span>
+                            @else
+                                <span class="text-xs italic text-gray-500">No Budget Set</span>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>
@@ -134,19 +167,35 @@
                             <x-input-label for="category_id" :value="__('Category')" />
                             <select name="category_id" id="category_id_modal" x-show="type === 'expense'" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-green-500 dark:focus:border-green-600 focus:ring-green-500 dark:focus:ring-green-600 rounded-md shadow-sm">
                                 <option value="">{{ __('Select an expense category') }}</option>
-                                @foreach ($expenseCategories as $category)
-                                    <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>
-                                        {{ $category->name }}
+
+                                @foreach ($expenseCategories as $parent)
+                                    <option value="{{ $parent->id }}" {{ old('category_id') == $parent->id ? 'selected' : '' }}>
+                                        {{ $parent->name }}
                                     </option>
+
+                                    @foreach ($parent->children as $child)
+                                        <option value="{{ $child->id }}" {{ old('category_id') == $child->id ? 'selected' : '' }}>
+                                            &nbsp;&nbsp;└ {{ $child->name }}
+                                        </option>
+                                    @endforeach
                                 @endforeach
+
                             </select>
                             <select name="category_id_income" id="category_id_income_modal" x-show="type === 'income'" style="display: none;" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-green-500 dark:focus:border-green-600 focus:ring-green-500 dark:focus:ring-green-600 rounded-md shadow-sm">
                                 <option value="">{{ __('Select an income category') }}</option>
-                                @foreach ($incomeCategories as $category)
-                                    <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>
-                                        {{ $category->name }}
+
+                                @foreach ($incomeCategories as $parent)
+                                    <option value="{{ $parent->id }}" {{ old('category_id_income') == $parent->id ? 'selected' : '' }}>
+                                        {{ $parent->name }}
                                     </option>
+
+                                    @foreach ($parent->children as $child)
+                                        <option value="{{ $child->id }}" {{ old('category_id_income') == $child->id ? 'selected' : '' }}>
+                                            &nbsp;&nbsp;└ {{ $child->name }}
+                                        </option>
+                                    @endforeach
                                 @endforeach
+
                             </select>
                             <x-input-error :messages="$errors->get('category_id')" class="mt-2" />
                         </div>
@@ -170,26 +219,23 @@
                         </div>
 
                         <div class="mt-4">
-                            <x-input-label :value="__('Tags (Optional)')" />
-                            <div class="mt-2 p-4 border border-gray-300 dark:border-gray-700 rounded-md">
-                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-40 overflow-y-auto">
-                                    @forelse ($tags as $tag) <label for="modal_tag_{{ $tag->id }}" class="inline-flex items-center">
-                                            <input id="modal_tag_{{ $tag->id }}"
-                                                type="checkbox"
-                                                name="tags[]"
-                                                value="{{ $tag->id }}"
-                                                @if(is_array(old('tags')) && in_array($tag->id, old('tags'))) checked @endif
-                                                class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-green-600 shadow-sm focus:ring-green-500 dark:focus:ring-green-600 dark:focus:ring-offset-gray-800">
-                                            <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">{{ $tag->name }}</span>
-                                        </label>
-                                    @empty
-                                        <div class="col-span-full text-sm text-gray-500 italic">
-                                            You haven't created any tags yet.
-                                            <a href="{{ route('tags.create') }}" class="underline text-green-600">Create one now</a>.
-                                        </div>
-                                    @endforelse
-                                </div>
-                            </div>
+                            <x-input-label for="tags-modal" :value="__('Tags (Optional)')" />
+
+                            <select id="tags-modal"
+                                    name="tags[]"
+                                    multiple
+                                    autocomplete="off"
+                                    class="block mt-1 w-full">
+
+                                @foreach ($tags as $tag)
+                                    <option value="{{ $tag->id }}"
+                                        {{ (is_array(old('tags')) && in_array($tag->id, old('tags'))) ? 'selected' : ''}}>
+                                        {{ $tag->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+
+                            <x-input-error :messages="$errors->get('tags')" class="mt-2" />
                         </div>
 
                         <div>
@@ -214,7 +260,12 @@
     </div>
 
     @push('scripts')
+        <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
         <script>
+            new TomSelect('#tags-modal', {
+                plugins: ['remove_button'],
+            });
+
             let expenseChartInstance = null;
             let incomeChartInstance = null;
             function initCharts() {

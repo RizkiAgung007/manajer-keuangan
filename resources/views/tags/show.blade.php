@@ -14,7 +14,6 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
-            {{-- 1. KOTAK STATISTIK --}}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
@@ -38,7 +37,6 @@
                 </div>
             </div>
 
-            {{-- 2. TABEL TRANSAKSI --}}
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
                     <h3 class="text-lg font-medium mb-4">All Transactions with this Tag</h3>
@@ -94,7 +92,6 @@
                         </table>
                     </div>
 
-                    {{-- 3. PAGINASI --}}
                     <div class="mt-4">
                         {{ $transactions->links() }}
                     </div>

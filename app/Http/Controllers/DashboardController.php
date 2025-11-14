@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,42 +17,72 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
         $now = Carbon::now();
+        $startDate = $now->copy()->startOfMonth();
+        $endDate = $now->copy()->endOfMonth();
 
         $transactions = $user->transactions()
                         ->with('category')
-                        ->whereYear('transaction_date', $now->year)
-                        ->whereMonth('transaction_date', $now->month)
+                        ->whereBetween('transaction_date', [$startDate, $endDate])
                         ->get();
 
         $totalIncome = $transactions->where('category.type', 'income')->sum('amount');
         $totalExpense = $transactions->where('category.type', 'expense')->sum('amount');
         $netProfit = $totalIncome - $totalExpense;
 
+        $totalBudget = $user->budgets()
+                        ->where('year', $now->year)
+                        ->where('month', $now->month)
+                        ->sum('amount');
+
+        $budgetPercentage = ($totalBudget > 0) ? round(($totalExpense / $totalBudget) * 100) : 0;
+
         $latestTransactions = $transactions->sortByDesc('transaction_date')->take(5);
 
-        $expenseByCategory = $transactions->where('category.type', 'expense')->groupBy('category.name')
-                                        ->map(function ($group) {
-                                            return $group->sum('amount');
-                                        });
+        $childToParentMap = Category::where('user_id', $user->id)->whereNotNull('parent_id')->pluck('parent_id', 'id');
 
+        $parentCategories = Category::where('user_id', $user->id)->parentCategories()->get()->keyBy('id');
+
+        $groupByParent = $transactions->groupBy(function ($tx) use ($childToParentMap) {
+            return $childToParentMap[$tx->category_id] ?? $tx->category_id;
+        });
+
+        $reportData = $groupByParent->map(function ($group, $parent_id) use ($parentCategories) {
+            $category = $parentCategories->get($parent_id);
+            if (!$category) {
+                return null;
+            }
+            return [
+                'name'  => $category->name,
+                'type'  => $category->type,
+                'total' => $group->sum('amount')
+            ];
+        })->filter();
+
+        $expenseData = $reportData->where('type', 'expense');
         $expenseChartData = [
-            'labels' => $expenseByCategory->keys(),
-            'series' => $expenseByCategory->values(),
+            'labels' => $expenseData->pluck('name')->values()->toArray(),
+            'series' => $expenseData->pluck('total')->values()->toArray(),
         ];
 
-        $incomeByCategory = $transactions->where('category.type', 'income')->groupBy('category.name')
-                                        ->map(function ($group) {
-                                            return $group->sum('amount');
-                                        });
-
+        $incomeData = $reportData->where('type', 'income');
         $incomeChartData = [
-            'labels' => $incomeByCategory->keys(),
-            'series' => $incomeByCategory->values(),
+            'labels' => $incomeData->pluck('name')->values()->toArray(),
+            'series' => $incomeData->pluck('total')->values()->toArray(),
         ];
 
-        $categories = $user->categories;
-        $incomeCategories = $categories->where('type', 'income');
-        $expenseCategories = $categories->where('type', 'expense');
+        $incomeCategories = Category::where('user_id', $user->id)
+                                ->where('type', 'income')
+                                ->parentCategories()
+                                ->with('children')
+                                ->orderBy('order_column')
+                                ->get();
+
+        $expenseCategories = Category::where('user_id', $user->id)
+                                ->where('type', 'expense')
+                                ->parentCategories()
+                                ->with('children')
+                                ->orderBy('order_column')
+                                ->get();
 
         $tags = $user->tags()->orderBy('name')->get();
 
@@ -59,6 +90,8 @@ class DashboardController extends Controller
             'totalIncome'        => $totalIncome,
             'totalExpense'       => $totalExpense,
             'netProfit'          => $netProfit,
+            'totalBudget'        => $totalBudget,
+            'budgetPercentage'   => $budgetPercentage,
             'latestTransactions' => $latestTransactions,
             'incomeChartData'    => $incomeChartData,
             'expenseChartData'   => $expenseChartData,

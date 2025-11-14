@@ -26,7 +26,7 @@
         <div class="min-h-screen flex flex-col">
 
             <header class="w-full shadow-sm bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-                <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <nav class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div class="flex justify-between items-center h-16">
 
                         <div class="flex items-center">

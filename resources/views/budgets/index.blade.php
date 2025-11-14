@@ -1,29 +1,46 @@
 <x-app-layout>
-        <x-slot name="header">
+    <x-slot name="header">
         <div x-data class="flex justify-between items-center">
             <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
                 {{ __('Budgets') }}
             </h2>
-
-            <div class="flex space-x-4">
-                <x-secondary-button
-                    x-on:click.prevent="$dispatch('open-modal', 'copy-budget')">
-                    <x-heroicon-o-document-duplicate class="w-4 h-4 me-2"/>
-                    {{ __('Copy Budgets') }}
-                </x-secondary-button>
-
-                <a href="{{ route('budgets.create') }}" class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
-                    <x-heroicon-o-plus class="w-4 h-4 me-2"/>
-                    {{ __('Set New Budget') }}
-                </a>
-            </div>
         </div>
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-screen-2xl mx-auto sm:px-6 lg:px-8">
+
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg mb-4">
+                <form method="GET" action="{{ route('budgets.index') }}" class="p-6">
+                        <div class="flex gap-6">
+                            <x-text-input id="search" class="block w-full rounded-lg"
+                                type="text"
+                                name="search"
+                                :value="$search"
+                                placeholder="Search by category name..." />
+
+                            <x-primary-button class="rounded-lg">
+                                <x-heroicon-o-magnifying-glass class="w-20 h-5"/>
+                            </x-primary-button>
+                        </div>
+                    </form>
+            </div>
+
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
+
+                    <div class="flex justify-end mb-4 gap-8">
+                        <x-secondary-button
+                            x-on:click.prevent="$dispatch('open-modal', 'copy-budget')">
+                            <x-heroicon-o-document-duplicate class="w-4 h-4 me-2"/>
+                            {{ __('Copy Budgets') }}
+                        </x-secondary-button>
+
+                        <a href="{{ route('budgets.create') }}" class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
+                            <x-heroicon-o-plus class="w-4 h-4 me-2"/>
+                            {{ __('Set New Budget') }}
+                        </a>
+                    </div>
 
                     <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
                         <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
@@ -143,4 +160,4 @@
             </form>
         </div>
     </x-modal>
-    </x-app-layout>
+</x-app-layout>
